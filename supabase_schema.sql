@@ -1,0 +1,151 @@
+-- ===================================================
+-- Skema Database Supabase untuk KALARSA (Portal Kuliah)
+-- Salin dan jalankan script ini di Supabase SQL Editor
+-- Dashboard -> SQL Editor -> New Query -> Paste -> Run
+-- ===================================================
+
+-- 1. Tabel Mata Kuliah (courses)
+create table if not exists courses (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  day text not null,
+  start_time text not null,
+  end_time text not null,
+  credits integer not null default 2,
+  building text,
+  room text,
+  lecturer text,
+  class_type text default 'all',
+  class_target text default 'all',
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_courses_day on courses(day);
+
+-- 2. Tabel Informasi & Pengumuman (announcements)
+create table if not exists announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  content text not null,
+  media_type text default 'text',
+  media_url text,
+  pinned boolean default false,
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_announcements_pinned on announcements(pinned);
+create index if not exists idx_announcements_created on announcements(created_at desc);
+
+-- 3. Tabel Daftar Tugas (assignments)
+create table if not exists assignments (
+  id uuid primary key default gen_random_uuid(),
+  course_name text not null,
+  title text not null,
+  description text,
+  assigned_date date not null default current_date,
+  deadline timestamp with time zone not null,
+  type text default 'individual',
+  status text default 'pending',
+  drive_link text,
+  class_type text default 'all',
+  class_target text default 'all',
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_assignments_deadline on assignments(deadline);
+
+-- 4. Tabel Profil Mahasiswa (profiles)
+create table if not exists profiles (
+  user_id text primary key,
+  name text not null,
+  nim text,
+  theory_class text default 'A',
+  practice_class text default 'A',
+  email text,
+  updated_at timestamp with time zone default now()
+);
+
+-- 5. Tabel Riwayat Spin Kelompok (group_draws)
+create table if not exists group_draws (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  total_groups integer not null,
+  raw_members jsonb not null,
+  result_groups jsonb not null,
+  created_at timestamp with time zone default now()
+);
+
+-- 6. Tabel Checklist Tugas per Akun (user_task_completions)
+create table if not exists user_task_completions (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  assignment_id text not null,
+  completed_at timestamp with time zone default now(),
+  unique(user_id, assignment_id)
+);
+
+create index if not exists idx_completions_user on user_task_completions(user_id);
+
+-- ===================================================
+-- Row Level Security (RLS)
+-- ===================================================
+alter table courses enable row level security;
+alter table announcements enable row level security;
+alter table assignments enable row level security;
+alter table profiles enable row level security;
+alter table group_draws enable row level security;
+alter table user_task_completions enable row level security;
+
+-- Policies: courses
+drop policy if exists "Allow read courses" on courses;
+drop policy if exists "Allow insert courses" on courses;
+drop policy if exists "Allow update courses" on courses;
+drop policy if exists "Allow delete courses" on courses;
+create policy "Allow read courses" on courses for select using (true);
+create policy "Allow insert courses" on courses for insert with check (true);
+create policy "Allow update courses" on courses for update using (true) with check (true);
+create policy "Allow delete courses" on courses for delete using (true);
+
+-- Policies: announcements
+drop policy if exists "Allow read announcements" on announcements;
+drop policy if exists "Allow insert announcements" on announcements;
+drop policy if exists "Allow update announcements" on announcements;
+drop policy if exists "Allow delete announcements" on announcements;
+create policy "Allow read announcements" on announcements for select using (true);
+create policy "Allow insert announcements" on announcements for insert with check (true);
+create policy "Allow update announcements" on announcements for update using (true) with check (true);
+create policy "Allow delete announcements" on announcements for delete using (true);
+
+-- Policies: assignments
+drop policy if exists "Allow read assignments" on assignments;
+drop policy if exists "Allow insert assignments" on assignments;
+drop policy if exists "Allow update assignments" on assignments;
+drop policy if exists "Allow delete assignments" on assignments;
+create policy "Allow read assignments" on assignments for select using (true);
+create policy "Allow insert assignments" on assignments for insert with check (true);
+create policy "Allow update assignments" on assignments for update using (true) with check (true);
+create policy "Allow delete assignments" on assignments for delete using (true);
+
+-- Policies: profiles
+drop policy if exists "Allow read profiles" on profiles;
+drop policy if exists "Allow insert profiles" on profiles;
+drop policy if exists "Allow update profiles" on profiles;
+create policy "Allow read profiles" on profiles for select using (true);
+create policy "Allow insert profiles" on profiles for insert with check (true);
+create policy "Allow update profiles" on profiles for update using (true) with check (true);
+
+-- Policies: group_draws
+drop policy if exists "Allow read group_draws" on group_draws;
+drop policy if exists "Allow insert group_draws" on group_draws;
+drop policy if exists "Allow delete group_draws" on group_draws;
+create policy "Allow read group_draws" on group_draws for select using (true);
+create policy "Allow insert group_draws" on group_draws for insert with check (true);
+create policy "Allow delete group_draws" on group_draws for delete using (true);
+
+-- Policies: user_task_completions
+drop policy if exists "Allow read user_task_completions" on user_task_completions;
+drop policy if exists "Allow insert user_task_completions" on user_task_completions;
+drop policy if exists "Allow delete user_task_completions" on user_task_completions;
+create policy "Allow read user_task_completions" on user_task_completions for select using (true);
+create policy "Allow insert user_task_completions" on user_task_completions for insert with check (true);
+create policy "Allow delete user_task_completions" on user_task_completions for delete using (true);
