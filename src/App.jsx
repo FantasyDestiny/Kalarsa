@@ -13,6 +13,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('info') // 'info' | 'schedule' | 'assignments' | 'spinner'
   const [currentUser, setCurrentUser] = useState(() => AuthService.getCurrentUser())
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [pendingProfile, setPendingProfile] = useState(null)
 
   const [announcements, setAnnouncements] = useState([])
   const [courses, setCourses] = useState([])
@@ -54,7 +55,14 @@ export default function App() {
   useEffect(() => {
     let active = true
     AuthService.restoreSession().then(user => {
-      if (active) setCurrentUser(user)
+      if (!active) return
+      if (user?.needsProfile) {
+        setPendingProfile(user)
+        setCurrentUser(null)
+        setIsAuthModalOpen(true)
+      } else {
+        setCurrentUser(user)
+      }
     })
     return () => { active = false }
   }, [])
@@ -78,7 +86,9 @@ export default function App() {
 
   // AUTH HANDLERS
   const handleLoginSuccess = (user) => {
+    setPendingProfile(null)
     setCurrentUser(user)
+    setIsAuthModalOpen(false)
     showToast(
       user.role === 'admin'
         ? `Selamat datang Admin! Mode Pengurus diaktifkan.`
@@ -89,6 +99,7 @@ export default function App() {
   const handleLogout = async () => {
     await AuthService.logout()
     setCurrentUser(null)
+    setPendingProfile(null)
     showToast('Anda telah keluar dari akun.', 'info')
   }
 
@@ -281,8 +292,10 @@ export default function App() {
       {/* Authentication Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={() => { setIsAuthModalOpen(false); setPendingProfile(null) }}
         onLoginSuccess={handleLoginSuccess}
+        pendingProfile={pendingProfile}
+        onNeedsProfile={(user) => { setPendingProfile(user); setIsAuthModalOpen(true) }}
       />
 
       {/* Toast Notification */}
