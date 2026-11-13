@@ -158,6 +158,7 @@ export const AuthService = {
         email: email.trim(),
         password,
         options: {
+          emailRedirectTo: window.location.origin + (import.meta.env.BASE_URL || '/'),
           data: {
             name: name.trim(),
             nim: nim.trim(),
@@ -250,33 +251,6 @@ export const AuthService = {
     }
   },
 
-  // ── MAHASISWA: MASUK DENGAN GOOGLE ──────────────────────
-  async loginWithGoogle() {
-    if (!supabaseReady()) {
-      return { error: 'Supabase belum dikonfigurasi.' }
-    }
-
-    try {
-      const redirectTo = window.location.origin + (import.meta.env.BASE_URL || '/')
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo }
-      })
-
-      if (error || !data?.url) {
-        return {
-          error: 'Login Google belum tersedia. Aktifkan provider Google di dashboard Supabase.'
-        }
-      }
-
-      window.location.assign(data.url)
-      return { redirecting: true }
-    } catch (err) {
-      console.warn('Google login error:', err)
-      return { error: 'Gagal memulai login Google.' }
-    }
-  },
-
   // ── LENGKAPI PROFIL (setelah Google / email tanpa data) ─
   async completeProfile({ name, nim, theoryClass, practiceClass }) {
     if (!supabaseReady()) return { error: 'Supabase belum dikonfigurasi.' }
@@ -335,7 +309,7 @@ export const AuthService = {
         return adminUser
       }
 
-      const profile = await fetchProfile(authUser.id)
+      const profile = await ensureProfile(authUser)
 
       if (!profile) {
         return { ...toStudentUser(authUser, null), needsProfile: true }
@@ -348,6 +322,37 @@ export const AuthService = {
       console.warn('Restore session error:', err)
       return stored
     }
+  },
+
+  // Kirim ulang email verifikasi.
+  async resendVerification(email) {
+    if (!supabaseReady()) return { error: 'Supabase belum dikonfigurasi.' }
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: {
+          emailRedirectTo: window.location.origin + (import.meta.env.BASE_URL || '/')
+        }
+      })
+      if (error) return { error: mapAuthError(error.message) }
+      return { success: true }
+    } catch (err) {
+      console.warn('Resend verification error:', err)
+      return { error: 'Gagal mengirim ulang email verifikasi.' }
+    }
+  },
+
+  // Dengarkan perubahan sesi (mis. setelah user klik link verifikasi).
+  onAuthChange(callback) {
+    if (!supabaseReady()) return null
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Ditunda agar tidak memblokir callback internal supabase-js.
+        setTimeout(() => { callback() }, 0)
+      }
+    })
+    return data?.subscription || null
   },
 
   async logout() {

@@ -67,6 +67,22 @@ export default function App() {
     return () => { active = false }
   }, [])
 
+  // Tangkap sesi baru (mis. setelah user klik link verifikasi email)
+  useEffect(() => {
+    const subscription = AuthService.onAuthChange(async () => {
+      const user = await AuthService.restoreSession()
+      if (user?.needsProfile) {
+        setPendingProfile(user)
+        setCurrentUser(null)
+        setIsAuthModalOpen(true)
+      } else if (user) {
+        setPendingProfile(null)
+        setCurrentUser(user)
+      }
+    })
+    return () => subscription?.unsubscribe()
+  }, [])
+
   // Load User-Specific Completed Tasks when currentUser changes
   useEffect(() => {
     async function loadUserTasks() {

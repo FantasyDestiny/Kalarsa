@@ -7,6 +7,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
+  const [needsVerify, setNeedsVerify] = useState(false)
 
   // Login (email + password)
   const [loginEmail, setLoginEmail] = useState('')
@@ -25,7 +26,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
   const [regTheoryClass, setRegTheoryClass] = useState('A')
   const [regPracticeClass, setRegPracticeClass] = useState('A')
 
-  // Lengkapi profil (Google / akun lama tanpa data kelas)
+  // Lengkapi profil (akun tanpa data kelas)
   const [profileName, setProfileName] = useState('')
   const [profileNim, setProfileNim] = useState('')
   const [profileTheoryClass, setProfileTheoryClass] = useState('A')
@@ -48,6 +49,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
   const resetForm = () => {
     setError('')
     setInfo('')
+    setNeedsVerify(false)
     setActiveTab('student')
     setLoginEmail('')
     setLoginPassword('')
@@ -87,6 +89,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
     setLoading(false)
 
     if (result.error) {
+      setNeedsVerify(/belum dikonfirmasi/i.test(result.error))
       setError(result.error)
       return
     }
@@ -100,17 +103,23 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
     closeModal()
   }
 
-  // ── Masuk: Google ───────────────────────────────────────
-  const handleGoogleSignIn = async () => {
+  // ── Kirim ulang email verifikasi ─────────────────────────
+  const handleResendVerification = async () => {
+    const email = (loginEmail || regEmail).trim()
+    if (!email) {
+      setError('Isi email Anda dulu.')
+      return
+    }
     setError('')
     setInfo('')
     setLoading(true)
-    const result = await AuthService.loginWithGoogle()
+    const result = await AuthService.resendVerification(email)
+    setLoading(false)
     if (result.error) {
       setError(result.error)
-      setLoading(false)
+    } else {
+      setInfo(`Email verifikasi dikirim ulang ke ${email}. Cek kotak masuk atau folder spam.`)
     }
-    // Jika berhasil, browser diarahkan ke Google (loading dibiarkan aktif).
   }
 
   // ── Daftar: email + password ────────────────────────────
@@ -217,7 +226,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
   const headerSubtitle = completingProfile
     ? 'Sekali lagi saja — isi data berikut agar jadwal & tugas sesuai kelasmu.'
     : activeTab === 'register'
-    ? 'Daftar dengan email & password, atau lanjut dengan Google.'
+    ? 'Daftar dengan email & password. Verifikasi email diperlukan sebelum masuk.'
     : 'Kelola jadwal, informasi kelas, dan simpan progress checklist tugas.'
 
   return (
@@ -335,24 +344,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
         {!completingProfile && activeTab === 'student' && (
           <div className="space-y-3">
             <div className="p-3 bg-fuchsia-50 border border-fuchsia-100 rounded-2xl text-[11px] text-fuchsia-900 leading-relaxed">
-              Masuk untuk menyimpan checklist tugas dan data kelas Anda.
-            </div>
-
-            <button type="button" onClick={handleGoogleSignIn} disabled={loading}
-              className="w-full flex items-center justify-center gap-2.5 py-3 px-4 border-2 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 rounded-2xl text-xs font-bold text-slate-700 transition shadow-sm">
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              {loading ? 'Mengalihkan...' : 'Masuk dengan Google'}
-            </button>
-
-            <div className="flex items-center gap-2 py-1">
-              <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-[10px] font-bold text-slate-400 uppercase">atau email</span>
-              <div className="h-px flex-1 bg-slate-200" />
+              Masuk dengan email & password yang sudah diverifikasi untuk menyimpan checklist tugas dan data kelas Anda.
             </div>
 
             <form onSubmit={handleLoginSubmit} className="space-y-3">
@@ -372,6 +364,13 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
               </button>
             </form>
 
+            {needsVerify && (
+              <button type="button" onClick={handleResendVerification} disabled={loading}
+                className="w-full py-2 px-4 border border-amber-300 bg-amber-50 text-amber-800 rounded-xl text-[11px] font-bold transition hover:bg-amber-100">
+                Kirim ulang email verifikasi
+              </button>
+            )}
+
             <p className="text-center text-[11px] text-slate-400 pt-1">
               Belum punya akun?{' '}
               <button onClick={() => handleTabSwitch('register')} className="font-bold text-fuchsia-600 hover:underline">
@@ -385,24 +384,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, pendingProf
         {!completingProfile && activeTab === 'register' && (
           <form onSubmit={handleRegisterSubmit} className="space-y-3">
             <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-2xl text-[11px] text-emerald-900 leading-relaxed">
-              Buat akun dengan email & password, lalu lengkapi data kelas. Bisa juga langsung pakai Google.
-            </div>
-
-            <button type="button" onClick={handleGoogleSignIn} disabled={loading}
-              className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 border-2 border-slate-200 bg-white hover:bg-slate-50 rounded-2xl text-xs font-bold text-slate-700 transition shadow-sm">
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              Daftar dengan Google
-            </button>
-
-            <div className="flex items-center gap-2 py-1">
-              <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-[10px] font-bold text-slate-400 uppercase">atau email</span>
-              <div className="h-px flex-1 bg-slate-200" />
+              Isi data berikut. Kami akan mengirim link verifikasi ke email Anda sebelum akun bisa dipakai.
             </div>
 
             <div>
