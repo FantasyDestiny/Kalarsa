@@ -5,7 +5,7 @@ import { DataService } from '../services/dataService'
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [activeTab, setActiveTab] = useState('student') // 'student' | 'admin' | 'register'
-  const [adminUsername, setAdminUsername] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,7 +26,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
   const resetForm = () => {
     setError('')
-    setAdminUsername('')
+    setAdminEmail('')
     setAdminPassword('')
     setStudentName('')
     setStudentEmail('')
@@ -48,7 +48,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const result = await AuthService.loginAdmin(adminUsername, adminPassword)
+    const result = await AuthService.loginAdmin(adminEmail, adminPassword)
     setLoading(false)
     if (result.error) {
       setError(result.error)
@@ -305,15 +305,16 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         {activeTab === 'admin' && (
           <form onSubmit={handleAdminSubmit} className="space-y-4">
             <div className="p-3 bg-indigo-50 border border-indigo-200/80 rounded-2xl text-[11px] text-indigo-900 leading-relaxed">
-              Khusus pengurus kelas untuk mengelola jadwal, gedung, pengumuman, dan link Google Drive.
+              Khusus pengurus kelas untuk mengelola jadwal, gedung, pengumuman, dan link Google Drive. Login diverifikasi oleh Supabase Auth.
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Username Admin</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Email Admin</label>
               <div className="relative">
                 <User className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                <input type="text" required placeholder="Username Admin" value={adminUsername}
-                  onChange={e => setAdminUsername(e.target.value)}
+                <input type="email" required placeholder="admin@kalarsa.app" value={adminEmail}
+                  onChange={e => setAdminEmail(e.target.value)}
+                  autoComplete="username"
                   className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
               </div>
             </div>
@@ -324,6 +325,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                 <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                 <input type="password" required placeholder="Password Admin" value={adminPassword}
                   onChange={e => setAdminPassword(e.target.value)}
+                  autoComplete="current-password"
                   className="w-full pl-9 pr-3.5 py-2.5 border border-slate-300 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
               </div>
             </div>

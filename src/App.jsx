@@ -50,6 +50,15 @@ export default function App() {
     loadData()
   }, [])
 
+  // Verify stored admin session against Supabase on load
+  useEffect(() => {
+    let active = true
+    AuthService.restoreSession().then(user => {
+      if (active) setCurrentUser(user)
+    })
+    return () => { active = false }
+  }, [])
+
   // Load User-Specific Completed Tasks when currentUser changes
   useEffect(() => {
     async function loadUserTasks() {

@@ -144,8 +144,8 @@ export const DataService = {
         .insert([newCourse])
         .select()
         .single()
-      if (!error && data) return data
-      console.error('Supabase addCourse error:', error)
+      if (error) throw error
+      if (data) return data
     }
     const current = getLocal('wk_courses', INITIAL_COURSES)
     const updated = [...current, newCourse]
@@ -161,8 +161,8 @@ export const DataService = {
         .eq('id', id)
         .select()
         .single()
-      if (!error && data) return data
-      console.error('Supabase updateCourse error:', error)
+      if (error) throw error
+      if (data) return data
     }
     const current = getLocal('wk_courses', INITIAL_COURSES)
     const updated = current.map(c => c.id === id ? { ...c, ...updates } : c)
@@ -173,7 +173,7 @@ export const DataService = {
   async deleteCourse(id) {
     if (isSupabaseConfigured && supabase) {
       const { error } = await supabase.from('courses').delete().eq('id', id)
-      if (error) console.error('Supabase deleteCourse error:', error)
+      if (error) throw error
     }
     const current = getLocal('wk_courses', INITIAL_COURSES)
     const updated = current.filter(c => c.id !== id)
@@ -207,8 +207,8 @@ export const DataService = {
         .insert([newAnn])
         .select()
         .single()
-      if (!error && data) return data
-      console.error('Supabase addAnnouncement error:', error)
+      if (error) throw error
+      if (data) return data
     }
     const current = getLocal('wk_announcements', INITIAL_ANNOUNCEMENTS)
     const updated = [newAnn, ...current]
@@ -224,8 +224,8 @@ export const DataService = {
         .eq('id', id)
         .select()
         .single()
-      if (!error && data) return data
-      console.error('Supabase updateAnnouncement error:', error)
+      if (error) throw error
+      if (data) return data
     }
     const current = getLocal('wk_announcements', INITIAL_ANNOUNCEMENTS)
     const updated = current.map(a => a.id === id ? { ...a, ...updates } : a)
@@ -236,7 +236,7 @@ export const DataService = {
   async deleteAnnouncement(id) {
     if (isSupabaseConfigured && supabase) {
       const { error } = await supabase.from('announcements').delete().eq('id', id)
-      if (error) console.error('Supabase deleteAnnouncement error:', error)
+      if (error) throw error
     }
     const current = getLocal('wk_announcements', INITIAL_ANNOUNCEMENTS)
     const updated = current.filter(a => a.id !== id)
@@ -265,8 +265,8 @@ export const DataService = {
         .insert([newAssignment])
         .select()
         .single()
-      if (!error && data) return data
-      console.error('Supabase addAssignment error:', error)
+      if (error) throw error
+      if (data) return data
     }
     const current = getLocal('wk_assignments', INITIAL_ASSIGNMENTS)
     const updated = [...current, newAssignment]
@@ -282,8 +282,8 @@ export const DataService = {
         .eq('id', id)
         .select()
         .single()
-      if (!error && data) return data
-      console.error('Supabase updateAssignment error:', error)
+      if (error) throw error
+      if (data) return data
     }
     const current = getLocal('wk_assignments', INITIAL_ASSIGNMENTS)
     const updated = current.map(a => a.id === id ? { ...a, ...updates } : a)
@@ -294,7 +294,7 @@ export const DataService = {
   async deleteAssignment(id) {
     if (isSupabaseConfigured && supabase) {
       const { error } = await supabase.from('assignments').delete().eq('id', id)
-      if (error) console.error('Supabase deleteAssignment error:', error)
+      if (error) throw error
     }
     const current = getLocal('wk_assignments', INITIAL_ASSIGNMENTS)
     const updated = current.filter(a => a.id !== id)

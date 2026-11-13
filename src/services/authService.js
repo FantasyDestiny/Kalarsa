@@ -1,11 +1,17 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'
 
-const ADMIN_CREDENTIALS = {
-  username: import.meta.env.VITE_ADMIN_USERNAME || '',
-  password: import.meta.env.VITE_ADMIN_PASSWORD || ''
-}
-
 const STORAGE_KEY = 'kalarsa_user_session'
+
+function toAdminUser(authUser) {
+  return {
+    id: authUser.id,
+    name: authUser.user_metadata?.name || 'Pengurus Kelas (Admin)',
+    email: authUser.email,
+    role: 'admin',
+    avatar_url: authUser.user_metadata?.avatar_url || null,
+    provider: 'supabase'
+  }
+}
 
 export const AuthService = {
   getCurrentUser() {
@@ -25,21 +31,65 @@ export const AuthService = {
     }
   },
 
-  // Admin Login with specific credentials
-  async loginAdmin(username, password) {
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-      const adminUser = {
-        id: 'admin_kalarsa_root',
-        name: 'Pengurus Kelas (Admin)',
-        email: 'admin@kalarsa.local',
-        role: 'admin',
-        avatar_url: null,
-        provider: 'admin'
+  // Admin login diverifikasi oleh Supabase Auth.
+  // Role admin hanya ada di JWT app_metadata, yang tidak bisa ditulis klien.
+  async loginAdmin(email, password) {
+    if (!isSupabaseConfigured || !supabase) {
+      return { user: null, error: 'Supabase belum dikonfigurasi. Login admin tidak tersedia.' }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      })
+
+      if (error || !data?.user) {
+        return { user: null, error: 'Email atau password admin salah!' }
       }
+
+      if (data.user.app_metadata?.role !== 'admin') {
+        await supabase.auth.signOut()
+        return { user: null, error: 'Akun ini tidak memiliki akses admin.' }
+      }
+
+      const adminUser = toAdminUser(data.user)
       this.setCurrentUser(adminUser)
       return { user: adminUser, error: null }
+    } catch (err) {
+      console.warn('Admin login error:', err)
+      return { user: null, error: 'Gagal terhubung ke server autentikasi.' }
     }
-    return { user: null, error: 'Username atau Password Admin salah!' }
+  },
+
+  // Dipanggil saat aplikasi dimuat. Memastikan sesi admin di localStorage
+  // masih didukung sesi Supabase yang valid (mencegah admin palsu di UI).
+  async restoreSession() {
+    const stored = this.getCurrentUser()
+
+    if (!isSupabaseConfigured || !supabase) return stored
+
+    try {
+      const { data } = await supabase.auth.getSession()
+      const authUser = data?.session?.user
+
+      if (authUser?.app_metadata?.role === 'admin') {
+        const adminUser = toAdminUser(authUser)
+        this.setCurrentUser(adminUser)
+        return adminUser
+      }
+
+      // Ada flag admin di localStorage tapi tidak ada sesi Supabase yang sah.
+      if (stored?.role === 'admin') {
+        this.setCurrentUser(null)
+        return null
+      }
+
+      return stored
+    } catch (err) {
+      console.warn('Restore session error:', err)
+      return stored
+    }
   },
 
   // Google Login (Supabase OAuth with seamless fallback)
