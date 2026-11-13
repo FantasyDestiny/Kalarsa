@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Plus, Edit2, Trash2, Clock, BookOpen, MapPin, User, Calendar, Building2, Sparkles } from 'lucide-react'
+import { Plus, Edit2, Trash2, Clock, BookOpen, MapPin, User, Calendar, Building2, Sparkles, GraduationCap } from 'lucide-react'
+import { classLabel } from '../lib/classFilter'
 
 const DAYS = ['Semua', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 
-export default function ScheduleView({ courses, onAdd, onUpdate, onDelete, isAdmin }) {
+export default function ScheduleView({ courses, onAdd, onUpdate, onDelete, isAdmin, currentUser }) {
   const [selectedDay, setSelectedDay] = useState(() => {
     const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
     const today = dayNames[new Date().getDay()]
@@ -112,6 +113,13 @@ export default function ScheduleView({ courses, onAdd, onUpdate, onDelete, isAdm
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {currentUser && currentUser.role !== 'admin' && (
+              <div className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-2xl text-white text-xs font-bold flex items-center gap-2 border border-white/30">
+                <GraduationCap className="w-4 h-4 text-emerald-200" />
+                <span>Teori {currentUser.theory_class || '-'} · Praktek {currentUser.practice_class || '-'}</span>
+              </div>
+            )}
+
             <div className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-2xl text-white text-xs font-bold flex items-center gap-2 border border-white/30">
               <BookOpen className="w-4 h-4 text-amber-300" />
               <span>Total Beban: <strong className="text-sm text-white">{totalSKS} SKS</strong></span>
@@ -182,6 +190,10 @@ export default function ScheduleView({ courses, onAdd, onUpdate, onDelete, isAdm
                 <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">
                   {course.name}
                 </h3>
+
+                <span className="inline-block mt-2 px-2.5 py-1 rounded-full text-[10px] font-bold bg-violet-100 text-violet-800 border border-violet-200">
+                  🎓 {classLabel(course)}
+                </span>
 
                 <div className="mt-4 space-y-2 text-xs text-slate-600">
                   <div className="flex items-center gap-2.5 p-2 bg-indigo-50/60 rounded-xl border border-indigo-100/80">

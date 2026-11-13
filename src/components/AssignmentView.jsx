@@ -94,17 +94,7 @@ export default function AssignmentView({
 
     const matchesCourse = filterCourse === 'all' ? true : a.course_name === filterCourse
 
-    // Filter by user's class if logged in and assignment has class restrictions
-    let matchesClass = true
-    if (currentUser && currentUser.theory_class && a.class_type && a.class_type !== 'all') {
-      if (a.class_type === 'theory') {
-        matchesClass = a.class_target === 'all' || a.class_target === currentUser.theory_class
-      } else if (a.class_type === 'practice') {
-        matchesClass = a.class_target === 'all' || a.class_target === currentUser.practice_class
-      }
-    }
-
-    return matchesStatus && matchesCourse && matchesClass
+    return matchesStatus && matchesCourse
   })
 
   // Calculation for user progress bar

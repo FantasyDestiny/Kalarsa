@@ -7,6 +7,7 @@ import GroupSpinnerView from './components/GroupSpinnerView'
 import AuthModal from './components/AuthModal'
 import { DataService } from './services/dataService'
 import { AuthService } from './services/authService'
+import { filterByClass } from './lib/classFilter'
 import { CheckCircle } from 'lucide-react'
 
 export default function App() {
@@ -232,8 +233,12 @@ export default function App() {
     }
   }
 
+  // Hanya tampilkan jadwal & tugas yang sesuai kelas user (admin melihat semua)
+  const visibleCourses = filterByClass(courses, currentUser)
+  const visibleAssignments = filterByClass(assignments, currentUser)
+
   // Count active assignments & announcements for navbar badges
-  const activeAssignmentCount = assignments.filter(a => !userCompletedTaskIds.includes(a.id)).length
+  const activeAssignmentCount = visibleAssignments.filter(a => !userCompletedTaskIds.includes(a.id)).length
   const totalAnnouncementCount = announcements.length
 
   return (
@@ -268,7 +273,8 @@ export default function App() {
 
             {activeTab === 'schedule' && (
               <ScheduleView
-                courses={courses}
+                courses={visibleCourses}
+                currentUser={currentUser}
                 onAdd={handleAddCourse}
                 onUpdate={handleUpdateCourse}
                 onDelete={handleDeleteCourse}
@@ -278,8 +284,8 @@ export default function App() {
 
             {activeTab === 'assignments' && (
               <AssignmentView
-                assignments={assignments}
-                courses={courses}
+                assignments={visibleAssignments}
+                courses={visibleCourses}
                 onAdd={handleAddAssignment}
                 onUpdate={handleUpdateAssignment}
                 onDelete={handleDeleteAssignment}
